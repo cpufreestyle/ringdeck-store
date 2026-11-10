@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingDeck · 把 Mac 的窗口与桌面，收进一个圆环</title>
+<meta name="description" content="一款 macOS 效率工具：按住快捷键唤起圆环，切换应用与窗口、预览 Dock、跨桌面跳转，全部在一次手势里完成。">
+<meta name="robots" content="index,follow">
+<style>
+  :root {
+    --bg: #0d0e12;
+    --panel: #15171d;
+    --panel-2: #1b1e26;
+    --line: #2b2f3a;
+    --text: #f2f0ea;
+    --muted: #a4a8b3;
+    --gold: #e8c477;
+    --gold-dim: #b8934a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.75 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+  header {
+    border-bottom: 1px solid var(--line);
+    padding: 18px 0;
+    position: sticky; top: 0;
+    background: rgba(13, 14, 18, .92);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { font-weight: 700; letter-spacing: .04em; color: var(--text); font-size: 18px; }
+  .brand span { color: var(--gold); }
+  nav { display: flex; gap: 22px; font-size: 14px; }
+  nav a { color: var(--muted); }
+  nav a:hover { color: var(--gold); text-decoration: none; }
+  .hero { padding: 92px 0 72px; text-align: center; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    display: inline-block; font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--gold); border: 1px solid var(--gold-dim); border-radius: 999px;
+    padding: 5px 14px; margin-bottom: 26px;
+  }
+  h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.2; margin: 0 0 18px; letter-spacing: -.02em; }
+  h1 em { font-style: normal; color: var(--gold); }
+  .lead { color: var(--muted); font-size: 18px; max-width: 620px; margin: 0 auto 38px; }
+  .price { font-size: 34px; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+  .price-note { color: var(--muted); font-size: 14px; margin-bottom: 30px; }
+  .cta {
+    display: inline-block; background: var(--gold); color: #17130a; font-weight: 700;
+    padding: 15px 42px; border-radius: 10px; font-size: 17px;
+    box-shadow: 0 8px 30px rgba(232, 196, 119, .18);
+  }
+  .cta:hover { background: #f4d693; text-decoration: none; }
+  .cta-sub { display: block; margin-top: 14px; color: var(--muted); font-size: 13px; }
+  section { padding: 72px 0; border-bottom: 1px solid var(--line); }
+  h2 { font-size: 28px; margin: 0 0 10px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 36px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 22px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  .card .num { color: var(--gold); font-size: 12px; letter-spacing: .1em; display: block; margin-bottom: 12px; }
+  .steps { counter-reset: step; padding: 0; margin: 0; list-style: none; }
+  .steps li {
+    position: relative; padding: 0 0 26px 52px; border-left: 1px solid var(--line);
+    margin-left: 14px;
+  }
+  .steps li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .steps li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: -15px; top: -2px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--gold);
+    display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  }
+  .steps h3 { margin: 0 0 6px; font-size: 16px; }
+  .steps p { margin: 0; color: var(--muted); font-size: 14px; }
+  code {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
+    padding: 2px 6px; font-size: 13px; color: var(--gold);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .notice {
+    background: rgba(232, 196, 119, .06); border: 1px solid var(--gold-dim);
+    border-radius: 10px; padding: 18px 20px; margin-top: 28px;
+    font-size: 14px; color: var(--muted);
+  }
+  .notice strong { color: var(--gold); }
+  details {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+  }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
+  footer { padding: 40px 0 56px; color: var(--muted); font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    .hero { padding: 60px 0 52px; }
+    nav { display: none; }
+    section { padding: 52px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand"><span>◉</span> RingDeck</div>
+    <nav>
+      <a href="#features">功能</a>
+      <a href="#license">授权</a>
+      <a href="#activate">激活</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">macOS · 效率工具</div>
+    <h1>把 Mac 的窗口与桌面，收进一个<em>圆环</em></h1>
+    <p class="lead">一款 macOS 效率工具：按住快捷键唤起圆环，切换应用与窗口、预览 Dock、跨桌面跳转，全部在一次手势里完成。</p>
+    <div class="price">¥59</div>
+    <div class="price-note">一次性买断 · 1 台设备授权 · 7 天全功能试用 · 在线付款通道开通中，现可登记预购</div>
+    <a class="cta" href="https://github.com/cpufreestyle/ringdeck/issues/new" rel="noopener noreferrer">登记预购 →</a>
+    <span class="cta-sub">本页不收集任何付款信息</span>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>付费版解锁的全部能力</h2>
+    <p class="sub">试用期内所有功能都可以先体验，满意再买断。</p>
+    <div class="grid">
+      <div class="card"><span class="num">01</span><h3>应用切换</h3><p>按住快捷键唤起圆环，滑动选择正在运行的应用，松手即切。</p></div>
+      <div class="card"><span class="num">02</span><h3>窗口切换</h3><p>精确到单个窗口，同一个 App 开多个窗口也不用来回翻。</p></div>
+      <div class="card"><span class="num">03</span><h3>Dock 预览</h3><p>切换前直接看到窗口缩略图，不再靠标题猜。</p></div>
+      <div class="card"><span class="num">04</span><h3>触控手势</h3><p>触控板滚动/轻扫等手势唤醒与切换，可按需开关。</p></div>
+      <div class="card"><span class="num">05</span><h3>窗口动作</h3><p>关闭、最小化、全屏等常用操作直接从圆环发起。</p></div>
+      <div class="card"><span class="num">06</span><h3>跨桌面窗口</h3><p>识别其他 Space / 桌面上的窗口，一次跳转到位。</p></div>
+      <div class="card"><span class="num">07</span><h3>负一屏</h3><p>补上系统缺失的快捷信息屏，细节随手可查。</p></div>
+      <div class="card"><span class="num">08</span><h3>一次买断</h3><p>不订阅、不按年续费，激活码与订单绑定，长期有效。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="license">
+  <div class="wrap">
+    <h2>授权说明</h2>
+    <p class="sub">买之前先看清楚，避免售后扯皮。</p>
+    <div class="grid">
+      <div class="card"><h3>授权方式</h3><p>一次性买断 · 1 台设备授权 · 7 天全功能试用 · 在线付款通道开通中，现可登记预购</p></div>
+      <div class="card"><h3>交付形式</h3><p>购买后会收到一枚以 <code>RDK1.</code> 开头的激活码，含一键激活链接。</p></div>
+      <div class="card"><h3>系统要求</h3><p>macOS 桌面版。首次使用需按提示授予「辅助功能」权限，用于全局快捷键与窗口读取。</p></div>
+    </div>
+    <div class="notice">
+      <strong>关于售后：</strong>虚拟商品一经激活不支持退款；未激活可联系作者处理。 换机、重装或误删激活码，请凭原订单号联系
+      <a href="https://github.com/cpufreestyle/ringdeck/issues" rel="noopener noreferrer">GitHub Issues</a>。
+    </div>
+  </div>
+</section>
+
+<section id="activate">
+  <div class="wrap">
+    <h2>拿到激活码后怎么激活</h2>
+    <p class="sub">两种方式，任选其一，全程不需要联网校验。</p>
+    <ol class="steps">
+      <li><h3>安装并启动 RingDeck</h3><p>首次启动按提示在系统设置 → 隐私与安全性 → 辅助功能里勾选授权。</p></li>
+      <li><h3>一键激活（推荐）</h3><p>点击发货信息里的 <code>ringdeck://activate?code=…</code> 链接，应用会自动填入并激活。</p></li>
+      <li><h3>或手动粘贴</h3><p>打开 RingDeck → 设置 → 授权，把整串 <code>RDK1.…</code> 粘贴进输入框，点「激活」。</p></li>
+      <li><h3>确认状态</h3><p>授权页显示已激活、设备数正确即完成。请妥善保存激活码以便换机后重新激活。</p></li>
+    </ol>
+    <div class="notice">
+      <strong>激活码请不要公开分享。</strong> 它与你的订单绑定；一枚码对应授权设备数以发货信息为准。
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>常见问题</h2>
+    <p class="sub">还有别的问题，可通过下方联系方式找到作者。</p>
+    <details><summary>购买后在哪个页面付款？</summary><p>点击本页「登记预购」会跳转到对应的购买或登记页面；本页只做产品介绍与说明，不处理支付、不收集银行卡或账户信息。</p></details>
+    <details><summary>激活码多久能收到？</summary><p>由发货方式决定，通常在付款成功后立即显示。若长时间未收到，请凭订单号联系作者。</p></details>
+    <details><summary>换电脑 / 重装系统还能用吗？</summary><p>可以。请保留原始激活码，在新设备上按上面的步骤重新激活。若设备数已满，联系客服处理。</p></details>
+    <details><summary>提示「激活码无效」怎么办？</summary><p>确认复制了完整的一串（含开头的 <code>RDK1.</code>，不要带空格或换行），且应用版本与购买时一致。仍失败请联系客服并附上订单号。</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© RingDeck · cpufreestyle.github.io/ringdeck-store</div>
+    <div>联系：<a href="https://github.com/cpufreestyle/ringdeck/issues" rel="noopener noreferrer">GitHub Issues</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
